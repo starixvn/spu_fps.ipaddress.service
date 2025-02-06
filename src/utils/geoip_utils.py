@@ -58,4 +58,6 @@ def find_ips_with_matching_timezone(locations, request_timezone, x_forward_ips):
 def is_using_proxy_or_vpn(ip):
     """Check if an IP is using a proxy or VPN."""
     ip_info = get_ip_info(ip)
+    if ip_info == {}:
+        return True
     return ip_info.get('proxy') == 'yes' and ip_info.get('type') == 'VPN'
