@@ -10,5 +10,5 @@ def success_response(ip_address, is_actual_ip=False):
 
     return jsonify(response)
 
-def failed_response():
-    return jsonify({"status": "failed", "message": "No valid IP found"}), 404
+def failed_response(reason="No valid IP found"):
+    return jsonify({"status": "failed", "message": reason}), 404

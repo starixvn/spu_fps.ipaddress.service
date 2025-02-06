@@ -1,17 +1,16 @@
 from utils.ip_utils import validate_ip
 from models import IPInfo, SessionLocal
-from config import SPECIAL_IPS
 from datetime import datetime, timezone
 
 def get_valid_ips(x_forward_ips, ip_info_cache):
     return [
         ip for ip in x_forward_ips
-        if ip not in SPECIAL_IPS and validate_ip(ip) and ip_info_cache[ip] and ip_info_cache[ip] != {}
+        if validate_ip(ip) and ip_info_cache[ip] != {} and ip_info_cache[ip] 
     ]
 
 def save_all_valid_ips(x_forward_ips, ip_info_cache):
     for ip in x_forward_ips:
-        if ip not in SPECIAL_IPS and validate_ip(ip) and ip_info_cache[ip] and ip_info_cache[ip] != {}:
+        if validate_ip(ip) and ip_info_cache[ip] != {} and ip_info_cache[ip] :
             save_ip_info(ip, ip_info_cache[ip])
 
 def is_valid_ip(ip, valid_ips, ip_info_cache):
