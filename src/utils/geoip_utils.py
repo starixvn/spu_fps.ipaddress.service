@@ -1,7 +1,7 @@
 import geoip2.database
 from geoip2.errors import AddressNotFoundError
 
-from utils.ip_utils import filter_private_ips, get_ip_info
+from utils.ip_utils import filter_private_ips
 
 def get_geolocation(ip, geoip_db_path):
     try:
@@ -43,18 +43,15 @@ def get_locations_for_ips(x_forward_ips, geoip_db_path):
         return [get_geolocation(ip, geoip_db_path) for ip in x_forward_ips]
     return []
 
-def find_ips_with_matching_timezone(locations, request_timezone, x_forward_ips):
+def find_ips_with_matching_timezone(locations, request_timezone):
     matching_ips = [location['ip'] for location in locations if location['timezone'] == request_timezone]
     
-    if len(matching_ips) >= 2:
-        matching_ips = [ip for ip in matching_ips if not is_using_proxy_or_vpn(ip)]
-    elif not matching_ips:
-        matching_ips = [ip for ip in x_forward_ips if not is_using_proxy_or_vpn(ip)]
-    
-    return matching_ips[0] if matching_ips else None
+    return matching_ips if matching_ips else None
 
-def is_using_proxy_or_vpn(ip):
-    ip_info = get_ip_info(ip)
-    if ip_info == {}:
-        return True
-    return ip_info.get('proxy') == 'yes' or ip_info.get('type') == 'VPN'
+# FEATURE: Implement this function in the future.
+
+# def is_using_proxy_or_vpn(ip):
+#     ip_info = get_ip_info(ip)
+#     if ip_info == {} or ip_info.get('error'):
+#         return True
+#     return ip_info.get('proxy') == 'yes' or ip_info.get('type') == 'VPN'

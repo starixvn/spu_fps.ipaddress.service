@@ -6,21 +6,23 @@ from dotenv import load_dotenv
 from responses.custom_responses import invalid_ip_response
 from utils.ip_threat_detector import is_private_ip
 
-load_dotenv()  # Load environment variables from .env file
+# FEATURE: Implement this function in the future.
 
-API_KEY = os.getenv('API_KEY', 'abc-xyz')
+# load_dotenv()  # Load environment variables from .env file
 
-def get_ip_info(ip_address):
-    url = f'https://proxycheck.io/v2/{ip_address}?vpn=1&asn=1&key={API_KEY}'
-    try:
-        response = requests.get(url)
-        if response.status_code == 200:
-            data = response.json()
-            return data.get(ip_address, {})
-        else:
-            return {'error': 'Failed to retrieve data', 'status_code': response.status_code}
-    except requests.exceptions.RequestException as e:
-        return {'error': str(e)}
+# API_KEY = os.getenv('API_KEY', 'abc-xyz')
+
+# def get_ip_info(ip_address):
+#     url = f'https://proxycheck.io/v2/{ip_address}?vpn=1&asn=1&key={API_KEY}'
+#     try:
+#         response = requests.get(url)
+#         if response.status_code == 200:
+#             data = response.json()
+#             return data.get(ip_address, {})
+#         else:
+#             return {'error': 'Failed to retrieve data', 'status_code': response.status_code}
+#     except requests.exceptions.RequestException as e:
+#         return {'error': str(e)}
 
 def validate_ip(ip_address: str) -> bool:
     """

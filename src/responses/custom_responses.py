@@ -3,14 +3,14 @@ from flask import jsonify
 def invalid_ip_response(ip_address):
     return jsonify({"error": f"Invalid xActual_IP: {ip_address}"}), 400
 
-def success_response(ip_address, is_actual_ip=False, details=None, ip_list=None):
-    response = {"status": "success", "is_actual_ip": is_actual_ip}
-    if not is_actual_ip:
-        response["verified_ip"] = ip_address
-    if details:
-        response.update(details)
-    if ip_list:
-        response["ip_list"] = ip_list
+def success_response(ip_address, is_actual_ip=False, **kwargs):
+    response = {
+        "is_actual_ip": is_actual_ip,
+        "status": "success",
+        "verified_ip": ip_address
+    }
+
+    response.update({key: value for key, value in kwargs.items() if value})
 
     return jsonify(response)
 
