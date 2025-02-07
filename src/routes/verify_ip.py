@@ -1,53 +1,56 @@
 import ipaddress
 from flask import request
-from responses import failed_response, invalid_ip_response, success_response
-from utils import filter_private_ips, find_ips_with_matching_timezone, get_locations_for_ips, validate_ip
+from responses import failed_response, success_response
+from utils import filter_private_ips, find_ips_with_matching_timezone, get_locations_for_ips
+from utils.ip_utils import filter_ipv4_addresses, validate_ip_list
 
-geoip_db_path = 'src/data/GeoLite2-City.mmdb'
+GEOIP_DB_PATH = 'src/data/GeoLite2-City.mmdb'
 
-def extract_ip_headers():
-    try:
-        data = request.get_json()  
-        x_actual_ip = data.get("x_actual_ip")
-        x_forward_ips = data.get("x_forward_ips")
-        timezone = data.get("timezone")
-    except Exception as e:
-        print(f"Error parsing JSON body: {e}")
-        x_actual_ip, x_forward_ips, timezone = None, None, None
+def get_ip_headers():
+    return {
+        "actual_ip": request.headers.get("X-Actual-IP"),
+        "forwarded_ips": request.headers.get("X-Forwarded-For"),
+        "originating_ip": request.headers.get("X-Originating-IP"),
+        "remote_ip": request.headers.get("X-Remote-IP"),
+        "remote_addr": request.headers.get("X-Remote-Addr"),
+        "timezone": request.headers.get("timezone"),
+    }
 
-    return x_actual_ip, x_forward_ips, timezone
+def parse_ip_list(headers):
+    ip_list = [
+        headers["originating_ip"], 
+        headers["remote_ip"], 
+        headers["remote_addr"]
+    ]
+    if headers["forwarded_ips"]:
+        ip_list.extend(ip.strip() for ip in headers["forwarded_ips"].split(","))
+    return ip_list  
 
-
-def validate_and_clean_ips(x_actual_ip, x_forward_ips):
-    if not validate_ip(x_actual_ip):
-        return invalid_ip_response(x_actual_ip)
-
-    if x_forward_ips:
-        x_forward_ips = [ip.strip() for ip in x_forward_ips.split(",")]
-
-    return x_forward_ips
-
-
-def filter_ipv6_addresses(ip_list):
-    return [ip for ip in ip_list if ipaddress.ip_address(ip).version == 4]
-
+def count_ip_occurrences(ip_list, target_ip):
+    return ip_list.count(target_ip)
 
 def verify_ip_endpoint():
-    x_actual_ip, x_forward_ips, timezone = extract_ip_headers()
-    x_forward_ips = validate_and_clean_ips(x_actual_ip, x_forward_ips)
+    headers = get_ip_headers()
+    ip_list = parse_ip_list(headers)
+    actual_ip_count = count_ip_occurrences(ip_list, headers["actual_ip"])
 
-    if x_actual_ip not in x_forward_ips:
-        if isinstance(x_forward_ips, tuple): 
-            return x_forward_ips
-        
-        x_forward_ips = filter_ipv6_addresses(x_forward_ips)
-        x_forward_ips = filter_private_ips(x_forward_ips)
-        locations = get_locations_for_ips(x_forward_ips, geoip_db_path)
-        matching_ip = find_ips_with_matching_timezone(locations, timezone, x_forward_ips)
+    ip_list = list(filter(None, set(ip_list)))
+    ip_list = validate_ip_list(headers["actual_ip"], ip_list)
+    if isinstance(ip_list, tuple):  
+        return ip_list
+
+    forwarded_ips = [ip.strip() for ip in headers["forwarded_ips"].split(",")] if headers["forwarded_ips"] else []
+
+    if actual_ip_count < 2 or headers["actual_ip"] not in forwarded_ips:
+
+        # FEATURE: Backend will handle actual IP proof verification in the future.
+        locations = get_locations_for_ips(ip_list, GEOIP_DB_PATH)
+        matching_ip = find_ips_with_matching_timezone(locations, headers["timezone"], ip_list)
         
         if matching_ip:
-            return success_response(matching_ip, is_actual_ip=False)
+            details = next((loc for loc in locations if loc['ip'] == matching_ip), {})
+            return success_response(matching_ip, is_actual_ip=False, details=details, ip_list=ip_list)
         else:
             return failed_response(reason="No matching IP found")
         
-    return success_response(x_actual_ip, is_actual_ip=True)
+    return success_response(headers["actual_ip"], is_actual_ip=True)

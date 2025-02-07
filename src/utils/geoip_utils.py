@@ -1,25 +1,23 @@
 import geoip2.database
-from utils.ip_threat_detector import is_private_ip
-from utils.ip_utils import get_ip_info
+from geoip2.errors import AddressNotFoundError
 
-def filter_private_ips(ip_list):
-    return [ip for ip in ip_list if not is_private_ip(ip)]
+from utils.ip_utils import filter_private_ips, get_ip_info
 
 def get_geolocation(ip, geoip_db_path):
-    reader = geoip2.database.Reader(geoip_db_path)
     try:
-        response = reader.city(ip)
-        location = {
-            'ip': ip,
-            'country': response.country.iso_code,
-            'region': response.subdivisions.most_specific.iso_code,
-            'city': response.city.name,
-            'latitude': response.location.latitude,
-            'longitude': response.location.longitude,
-            'timezone': response.location.time_zone
-        }
-    except geoip2.errors.AddressNotFoundError:
-        location = {
+        with geoip2.database.Reader(geoip_db_path) as reader:
+            response = reader.city(ip)
+            return {
+                'ip': ip,
+                'country': response.country.iso_code,
+                'region': response.subdivisions.most_specific.iso_code,
+                'city': response.city.name,
+                'latitude': response.location.latitude,
+                'longitude': response.location.longitude,
+                'timezone': response.location.time_zone
+            }
+    except AddressNotFoundError:
+        return {
             'ip': ip,
             'country': None,
             'region': None,
@@ -28,8 +26,16 @@ def get_geolocation(ip, geoip_db_path):
             'longitude': None,
             'timezone': None
         }
-    reader.close()
-    return location
+    except Exception as e:
+        return {
+            'ip': ip,
+            'country': None,
+            'region': None,
+            'city': None,
+            'latitude': None,
+            'longitude': None,
+            'timezone': None
+        }
 
 def get_locations_for_ips(x_forward_ips, geoip_db_path):
     x_forward_ips = filter_private_ips(x_forward_ips)

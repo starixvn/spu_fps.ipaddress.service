@@ -3,6 +3,9 @@ import requests
 import os
 from dotenv import load_dotenv
 
+from responses.custom_responses import invalid_ip_response
+from utils.ip_threat_detector import is_private_ip
+
 load_dotenv()  # Load environment variables from .env file
 
 API_KEY = os.getenv('API_KEY', 'abc-xyz')
@@ -34,3 +37,16 @@ def validate_ip(ip_address: str) -> bool:
         return True
     except ipaddress.AddressValueError:
         return False
+    
+def filter_ipv4_addresses(ip_list):
+    return [ip for ip in ip_list if ipaddress.ip_address(ip).version == 4]
+
+def filter_private_ips(ip_list):
+    return [ip for ip in ip_list if not is_private_ip(ip)]
+
+def validate_ip_list(actual_ip, ip_list):
+    if not validate_ip(actual_ip):
+        return invalid_ip_response(actual_ip)
+    ip_list = filter_ipv4_addresses(ip_list)
+    ip_list = filter_private_ips(ip_list)
+    return ip_list
