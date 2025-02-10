@@ -26,9 +26,6 @@ def parse_ip_list(headers):
         ip_list.extend(ip.strip() for ip in headers["forwarded_ips"].split(","))
     return list(filter(None, set(ip_list)))
 
-def count_ip_occurrences(ip_list, target_ip):
-    return ip_list.count(target_ip)
-
 def build_ip_response(actual_ip, matching_ips, locations, ip_list):
     if actual_ip == matching_ips[0]:
         return success_response(actual_ip, is_actual_ip=True)
