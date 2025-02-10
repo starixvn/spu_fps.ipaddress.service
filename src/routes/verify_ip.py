@@ -24,7 +24,7 @@ def parse_ip_list(headers):
     ]
     if headers["forwarded_ips"]:
         ip_list.extend(ip.strip() for ip in headers["forwarded_ips"].split(","))
-    return ip_list  
+    return list(filter(None, set(ip_list)))
 
 def count_ip_occurrences(ip_list, target_ip):
     return ip_list.count(target_ip)
@@ -40,16 +40,14 @@ def build_ip_response(actual_ip, matching_ips, locations, ip_list):
 def verify_ip_endpoint():
     headers = get_ip_headers()
     ip_list = parse_ip_list(headers)
-    actual_ip_count = count_ip_occurrences(ip_list, headers["actual_ip"])
 
-    ip_list = list(filter(None, set(ip_list)))
     ip_list = validate_ip_list(headers["actual_ip"], ip_list)
     if isinstance(ip_list, tuple):  
         return ip_list
 
     forwarded_ips = [ip.strip() for ip in headers["forwarded_ips"].split(",")] if headers["forwarded_ips"] else []
 
-    if actual_ip_count < 2 or headers["actual_ip"] not in forwarded_ips:
+    if headers["actual_ip"] not in forwarded_ips:
 
         # FEATURE: Backend will handle actual IP proof verification in the future.
         locations = get_locations_for_ips(ip_list, GEOIP_DB_PATH)
